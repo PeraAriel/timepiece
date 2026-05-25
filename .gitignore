@@ -11,3 +11,6 @@ frontend/out-tsc/
 .angular/
 .DS_Store
 eventhub.zip
+
+eventhub.zip
+*.zip
