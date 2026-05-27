@@ -107,6 +107,21 @@ class ProfileUpdateSchema(Schema):
     city = fields.Str(allow_none=True, validate=validate.Length(max=120))
 
 
+class LoginSchema(Schema):
+    email = fields.Email(required=True)
+    password = fields.Str(required=True, validate=validate.Length(min=1))
+
+
+class RegisterSchema(Schema):
+    email = fields.Email(required=True)
+    password = fields.Str(required=True, validate=validate.Length(min=8))
+    display_name = fields.Str(required=True, validate=validate.Length(min=1, max=160))
+
+
+class RefreshSchema(Schema):
+    refresh_token = fields.Str(required=True, validate=validate.Length(min=1))
+
+
 class AdminUserUpdateSchema(Schema):
     display_name = fields.Str(validate=validate.Length(min=1, max=160))
     city = fields.Str(allow_none=True, validate=validate.Length(max=120))

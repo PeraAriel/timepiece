@@ -84,18 +84,106 @@ Premi:
 Assign role
 ```
 
-Seleziona il filtro:
+Nella modale di assegnazione non cercarli in `Realm roles`: non sono ruoli del realm
+come `user`, `organizer` o `admin`. Sono ruoli del client interno
+`realm-management`.
+
+Seleziona il filtro/dropdown:
 
 ```text
 Filter by clients
 ```
 
-Assegna questi ruoli del client `realm-management`:
+Poi cerca e assegna questi ruoli del client `realm-management`:
 
 ```text
 manage-users
 view-users
 view-realm
+```
+
+Nella tabella Keycloak puo mostrare voci come `realm-managementcreate-client`:
+significa che sta concatenando client e ruolo nella stessa riga. In quel caso usa
+la ricerca della modale per cercare un ruolo alla volta, per esempio
+`manage-users`.
+
+Se non li vedi, controlla di essere nel realm `eventhub` e di avere davvero aperto:
+
+```text
+Clients -> eventhub-admin -> Service account roles -> Assign role
+```
+
+In alternativa, puoi assegnarli direttamente da terminale:
+
+```bash
+python3 - <<'PY'
+import json
+import urllib.parse
+import urllib.request
+
+base = "http://localhost:8080"
+realm = "eventhub"
+
+def request(method, url, token=None, data=None, headers=None):
+    headers = dict(headers or {})
+    body = None
+    if data is not None:
+        if isinstance(data, (dict, list)):
+            body = json.dumps(data).encode()
+            headers["Content-Type"] = "application/json"
+        else:
+            body = data
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, data=body, headers=headers, method=method)
+    with urllib.request.urlopen(req) as res:
+        return res.status, res.read().decode()
+
+data = urllib.parse.urlencode({
+    "client_id": "admin-cli",
+    "username": "admin",
+    "password": "admin",
+    "grant_type": "password",
+}).encode()
+_, raw = request(
+    "POST",
+    f"{base}/realms/master/protocol/openid-connect/token",
+    data=data,
+    headers={"Content-Type": "application/x-www-form-urlencoded"},
+)
+token = json.loads(raw)["access_token"]
+
+def client_uuid(client_id):
+    _, raw = request(
+        "GET",
+        f"{base}/admin/realms/{realm}/clients?clientId={urllib.parse.quote(client_id)}",
+        token=token,
+    )
+    return json.loads(raw)[0]["id"]
+
+admin_client_uuid = client_uuid("eventhub-admin")
+realm_management_uuid = client_uuid("realm-management")
+_, raw = request(
+    "GET",
+    f"{base}/admin/realms/{realm}/clients/{admin_client_uuid}/service-account-user",
+    token=token,
+)
+service_user_id = json.loads(raw)["id"]
+_, raw = request(
+    "GET",
+    f"{base}/admin/realms/{realm}/clients/{realm_management_uuid}/roles",
+    token=token,
+)
+wanted = {"manage-users", "view-users", "view-realm"}
+roles = [role for role in json.loads(raw) if role["name"] in wanted]
+request(
+    "POST",
+    f"{base}/admin/realms/{realm}/users/{service_user_id}/role-mappings/clients/{realm_management_uuid}",
+    token=token,
+    data=roles,
+)
+print("Ruoli assegnati:", ", ".join(sorted(role["name"] for role in roles)))
+PY
 ```
 
 `manage-users` permette l'assegnazione dei role mappings. `view-users` e `view-realm` permettono al backend di leggere utenti e ruoli quando popola la dashboard admin.
@@ -180,7 +268,7 @@ Controlla:
 
 - `KEYCLOAK_BASE_URL` deve essere raggiungibile dal backend.
 - Il client `eventhub-admin` deve avere `Client authentication` attivo.
-- Il service account deve avere almeno `manage-users`, `view-users`, `view-realm`.
+- Il service account deve avere almeno i client roles `manage-users`, `view-users`, `view-realm` del client `realm-management`.
 - Il realm deve essere `eventhub`.
 
 ### L'utente promosso non vede subito Organizer

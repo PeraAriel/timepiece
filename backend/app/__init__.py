@@ -7,7 +7,7 @@ from werkzeug.exceptions import HTTPException
 from .config import Config
 from .extensions import cors, db, migrate
 from . import models  # noqa: F401
-from .routes import admin_bp, events_bp, me_bp, openapi_bp, organizer_bp
+from .routes import admin_bp, auth_bp, events_bp, me_bp, openapi_bp, organizer_bp
 
 
 def create_app(config_object=Config):
@@ -21,6 +21,7 @@ def create_app(config_object=Config):
     migrate.init_app(app, db)
     cors.init_app(app, origins=app.config["CORS_ORIGINS"], supports_credentials=True)
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(events_bp)
     app.register_blueprint(me_bp)
     app.register_blueprint(organizer_bp)

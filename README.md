@@ -6,7 +6,7 @@ Web application full-stack per gestione eventi culturali a tema orologi, con bac
 
 - Backend: Flask, Blueprint REST, SQLAlchemy, Flask-Migrate, Marshmallow, pytest.
 - Frontend: Angular standalone components, Tailwind CSS, RxJS services, guards e HTTP interceptor.
-- Auth: Keycloak OIDC. Angular usa redirect login/registrazione, Flask valida JWT via JWKS.
+- Auth: form Angular proprietari su `/auth`; Flask crea utenti e token tramite Keycloak, poi valida i JWT via JWKS.
 - Database: MySQL 8.4.
 - Dev stack: Docker Compose con MySQL, Keycloak, backend e frontend.
 
@@ -23,6 +23,23 @@ Servizi:
 - Backend API: http://localhost:5000
 - Swagger/OpenAPI: http://localhost:5000/api/docs
 - Keycloak: http://localhost:8080, admin `admin`, password `admin`
+
+In GitHub Codespaces usa gli URL inoltrati:
+
+- Frontend: `https://<codespace>-4200.app.github.dev`
+- Backend API: `https://<codespace>-5000.app.github.dev`
+- Keycloak: `https://<codespace>-8080.app.github.dev`
+
+Le porte `4200`, `5000` e `8080` devono essere pubbliche per permettere a browser,
+API e Keycloak di comunicare:
+
+```bash
+gh codespace ports visibility 4200:public 5000:public 8080:public -c "$CODESPACE_NAME"
+```
+
+Il frontend rileva automaticamente se gira da Codespaces e usa gli URL pubblici
+corrispondenti per API e Keycloak. Il backend Docker usa Keycloak via rete interna
+Docker, ma valida i token con issuer pubblico configurato in `.env`.
 
 Il realm `eventhub` viene importato da `keycloak/realm-export.json` con client pubblico `eventhub-frontend` e ruoli `user`, `organizer`, `admin`.
 
@@ -49,9 +66,19 @@ Non usare `docker compose down -v` se vuoi conservare i dati: l'opzione `-v` eli
 
 Per provare le aree protette:
 
-1. Crea un utente dalla UI Keycloak o dal link registrazione Angular.
+1. Crea un utente dal pulsante `Registrati` dell'app Angular.
 2. Entra in Keycloak admin, realm `eventhub`, assegna i ruoli `organizer` o `admin` all'utente quando serve.
 3. Riesegui login per aggiornare il token con i ruoli.
+
+La UI Keycloak resta disponibile per amministrare utenti e ruoli, ma login e registrazione
+utente passano dall'app EventHub. Il backend espone:
+
+- `POST /api/auth/login` con `email` e `password`.
+- `POST /api/auth/register` con `email`, `password`, `display_name`.
+- `POST /api/auth/refresh` con `refresh_token`.
+
+La registrazione richiede un client Keycloak admin configurato; se manca, l'API risponde
+con `503` e `auth_admin_not_configured`.
 
 ## Backend locale
 
@@ -69,9 +96,10 @@ Variabili principali in `.env.example`:
 
 - `DATABASE_URL`
 - `KEYCLOAK_BASE_URL`
+- `KEYCLOAK_ISSUER_URL`, utile quando il backend raggiunge Keycloak da Docker ma i token hanno issuer pubblico.
 - `KEYCLOAK_REALM`
 - `KEYCLOAK_CLIENT_ID`
-- `KEYCLOAK_ADMIN_CLIENT_ID` e `KEYCLOAK_ADMIN_CLIENT_SECRET`, opzionali per promozione automatica a organizer.
+- `KEYCLOAK_ADMIN_CLIENT_ID` e `KEYCLOAK_ADMIN_CLIENT_SECRET`, richiesti per registrazione proprietaria e promozione automatica a organizer.
 
 Per configurare la promozione automatica tramite Keycloak Admin API, vedi [KEYCLOAK_ADMIN_SETUP.md](KEYCLOAK_ADMIN_SETUP.md).
 
@@ -110,6 +138,6 @@ npm run build
 - Dark mode e switch lingua IT/EN lato frontend.
 - Task asincrono semplice con `threading` per conferma iscrizione.
 
-Il profilo EventHub (`display_name`, `city`) si modifica tramite `PATCH /api/me/profile`. Email, login, password e ruoli restano gestiti da Keycloak.
+Il profilo EventHub (`display_name`, `city`) si modifica tramite `PATCH /api/me/profile`. Email, password e ruoli restano gestiti da Keycloak; i token sono salvati nel `localStorage` del frontend per mantenere la sessione dopo il refresh pagina.
 
 Sono escluse le funzionalita nel blocco `<Ignore>` di `instructions.md`: Stripe, WebSocket e relazione di consegna.

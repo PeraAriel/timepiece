@@ -20,15 +20,46 @@
       "protocol": "openid-connect",
       "publicClient": true,
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "implicitFlowEnabled": false,
-      "redirectUris": ["http://localhost:4200/*"],
-      "webOrigins": ["http://localhost:4200"],
+      "redirectUris": [
+        "http://localhost:4200/*",
+        "https://laughing-journey-q766xwpqqwrh45j-4200.app.github.dev/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200",
+        "https://laughing-journey-q766xwpqqwrh45j-4200.app.github.dev"
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:4200/*"
+        "post.logout.redirect.uris": "+"
+      }
+    },
+    {
+      "clientId": "eventhub-admin",
+      "name": "EventHub Backend Admin Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "4eJdFKPX5uOWabkZJ5OiiedzgjXApnHa",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-eventhub-admin",
+      "enabled": true,
+      "serviceAccountClientId": "eventhub-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "view-realm"
+        ]
       }
     }
   ]
 }
-

@@ -21,11 +21,13 @@ class AuthContext:
 
 
 def _issuer():
-    return f"{current_app.config['KEYCLOAK_BASE_URL']}/realms/{current_app.config['KEYCLOAK_REALM']}"
+    public_url = current_app.config["KEYCLOAK_ISSUER_URL"].rstrip("/")
+    return f"{public_url}/realms/{current_app.config['KEYCLOAK_REALM']}"
 
 
 def _jwks_url():
-    return f"{_issuer()}/protocol/openid-connect/certs"
+    base_url = current_app.config["KEYCLOAK_BASE_URL"].rstrip("/")
+    return f"{base_url}/realms/{current_app.config['KEYCLOAK_REALM']}/protocol/openid-connect/certs"
 
 
 def _extract_roles(claims):
@@ -170,6 +172,53 @@ class KeycloakAdminClient:
         )
         response.raise_for_status()
         return response.json()["access_token"]
+
+    def create_user(self, email, password, display_name):
+        if not self.configured:
+            return None
+
+        headers = {"Authorization": f"Bearer {self._token()}"}
+        response = requests.post(
+            f"{self.base_url}/admin/realms/{self.realm}/users",
+            headers={**headers, "Content-Type": "application/json"},
+            json={
+                "username": email,
+                "email": email,
+                "enabled": True,
+                "firstName": display_name,
+                "credentials": [
+                    {
+                        "type": "password",
+                        "value": password,
+                        "temporary": False,
+                    }
+                ],
+            },
+            timeout=10,
+        )
+        if response.status_code == 409:
+            return None
+        response.raise_for_status()
+
+        location = response.headers.get("Location", "")
+        return location.rstrip("/").split("/")[-1] if location else self.find_user_id_by_email(email)
+
+    def find_user_id_by_email(self, email):
+        if not self.configured:
+            return None
+
+        headers = {"Authorization": f"Bearer {self._token()}"}
+        response = requests.get(
+            f"{self.base_url}/admin/realms/{self.realm}/users",
+            headers=headers,
+            params={"email": email, "exact": "true"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        users = response.json()
+        if not users:
+            return None
+        return users[0]["id"]
 
     def assign_realm_role(self, keycloak_sub, role_name):
         if not self.configured:

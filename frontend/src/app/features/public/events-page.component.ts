@@ -1,12 +1,11 @@
 import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
 import { ApiService } from '../../core/api.service';
-import { AuthService } from '../../core/auth.service';
 import { I18nService } from '../../core/i18n.service';
-import { EventHubEvent, Review } from '../../core/types';
+import { EventHubEvent } from '../../core/types';
 import { IconComponent } from '../../shared/icon.component';
 import { TranslatePipe } from '../../shared/t.pipe';
 import { environment } from '../../../environments/environment';
@@ -18,11 +17,12 @@ import { environment } from '../../../environments/environment';
     NgFor,
     NgIf,
     ReactiveFormsModule,
+    RouterLink,
     TranslatePipe,
     IconComponent
   ],
   template: `
-    <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+    <section class="grid gap-6">
       <div class="min-w-0 space-y-5">
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.82fr)] lg:items-end">
           <div class="min-w-0">
@@ -65,11 +65,9 @@ import { environment } from '../../../environments/environment';
         <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           <article
             *ngFor="let event of events"
-            class="panel min-w-0 overflow-hidden transition"
-            [class.ring-2]="selected?.id === event.id"
-            style="--tw-ring-color: var(--accent)"
+            class="panel min-w-0 overflow-hidden transition hover:-translate-y-0.5"
           >
-            <button class="block h-full w-full text-left" type="button" (click)="select(event)">
+            <a class="block h-full w-full text-left" [routerLink]="['/events', event.id]">
               <div class="relative aspect-[4/3] overflow-hidden border-b cover-fallback" style="border-color: var(--line)">
                 <img
                   *ngIf="event.cover_url"
@@ -106,74 +104,22 @@ import { environment } from '../../../environments/environment';
                   </dl>
                   <div class="flex items-center justify-between gap-3">
                     <span class="badge">{{ event.available_seats }} {{ 'available' | t }}</span>
-                    <span class="text-sm font-semibold" style="color: var(--accent-strong)">{{ 'eventDetails' | t }}</span>
+                    <span class="btn btn-muted pointer-events-none">
+                      {{ 'eventDetails' | t }}
+                    </span>
                   </div>
                 </div>
               </div>
-            </button>
+            </a>
           </article>
         </div>
       </div>
-
-      <aside class="panel h-fit min-w-0 p-5 xl:sticky xl:top-28" *ngIf="selected as event">
-        <div class="space-y-5">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="badge badge-accent">{{ event.category }}</span>
-              <span class="badge">{{ event.starts_at | date:'mediumDate':undefined:i18n.locale }}</span>
-            </div>
-            <h2 class="safe-text mt-4 text-2xl font-black leading-tight">{{ event.title }}</h2>
-            <p class="mt-3 text-sm leading-6 muted">{{ event.description }}</p>
-          </div>
-          <div class="grid gap-2 text-sm">
-            <div class="flex justify-between gap-4 border-b py-2" style="border-color: var(--line)"><span class="muted">{{ 'city' | t }}</span><strong class="safe-text text-right">{{ event.city }}</strong></div>
-            <div class="flex justify-between gap-4 border-b py-2" style="border-color: var(--line)"><span class="muted">{{ 'venue' | t }}</span><strong class="safe-text text-right">{{ event.venue }}</strong></div>
-            <div class="flex justify-between gap-4 border-b py-2" style="border-color: var(--line)"><span class="muted">{{ 'price' | t }}</span><strong>{{ formatPrice(event.price_cents) }}</strong></div>
-            <div class="flex justify-between gap-4 py-2"><span class="muted">{{ 'rating' | t }}</span><strong>{{ event.average_rating ?? ('notAvailable' | t) }}</strong></div>
-          </div>
-          <button class="btn btn-primary w-full" type="button" (click)="reserve(event)">
-            <app-icon name="ticketPlus" [size]="18"></app-icon>
-            {{ 'reserve' | t }}
-          </button>
-          <p *ngIf="message" class="rounded-lg p-3 text-sm muted" style="background: var(--surface-muted)">
-            {{ message }}
-          </p>
-
-          <section class="space-y-3">
-            <div class="flex items-center justify-between gap-3">
-              <h3 class="font-semibold">{{ 'reviews' | t }}</h3>
-              <span class="badge">{{ reviews.length }}</span>
-            </div>
-            <form class="grid gap-2" [formGroup]="reviewForm" (ngSubmit)="submitReview(event)">
-              <select class="field" formControlName="rating" [attr.aria-label]="'rating' | t">
-                <option [ngValue]="5">5</option>
-                <option [ngValue]="4">4</option>
-                <option [ngValue]="3">3</option>
-                <option [ngValue]="2">2</option>
-                <option [ngValue]="1">1</option>
-              </select>
-              <textarea class="field min-h-24" formControlName="comment" [placeholder]="'comment' | t"></textarea>
-              <button class="btn btn-muted" type="submit">{{ 'save' | t }}</button>
-            </form>
-            <article *ngFor="let review of reviews" class="rounded-lg border p-3 text-sm" style="border-color: var(--line)">
-              <strong>{{ review.rating }}/5</strong>
-              <p class="safe-text mt-1 muted">{{ review.comment }}</p>
-            </article>
-            <div *ngIf="reviews.length === 0" class="empty-state p-4">
-              <p class="text-sm muted">{{ 'noReviewsText' | t }}</p>
-            </div>
-          </section>
-        </div>
-      </aside>
     </section>
   `
 })
 export class EventsPageComponent implements OnInit {
   readonly apiBase = environment.apiBaseUrl.replace(/\/api$/, '');
   events: EventHubEvent[] = [];
-  selected: EventHubEvent | null = null;
-  reviews: Review[] = [];
-  message = '';
 
   readonly filters = this.fb.nonNullable.group({
     q: [''],
@@ -182,16 +128,9 @@ export class EventsPageComponent implements OnInit {
     price_max: ['']
   });
 
-  readonly reviewForm = this.fb.nonNullable.group({
-    rating: [5],
-    comment: ['']
-  });
-
   constructor(
     private readonly fb: FormBuilder,
     private readonly api: ApiService,
-    private readonly router: Router,
-    readonly auth: AuthService,
     readonly i18n: I18nService
   ) {}
 
@@ -204,69 +143,6 @@ export class EventsPageComponent implements OnInit {
     const priceMax = raw.price_max ? Number(raw.price_max) * 100 : '';
     this.api.events({ ...raw, price_max: priceMax }).subscribe((response) => {
       this.events = response.items;
-      this.selected = this.selected ?? this.events[0] ?? null;
-      if (this.selected) {
-        this.loadReviews(this.selected.id);
-      }
-    });
-  }
-
-  select(event: EventHubEvent): void {
-    this.selected = event;
-    this.message = '';
-    this.loadReviews(event.id);
-  }
-
-  reserve(event: EventHubEvent): void {
-    if (!this.auth.authenticated) {
-      void this.auth.login();
-      return;
-    }
-    this.api.profile().subscribe({
-      next: (profile) => {
-        if (profile.is_banned) {
-          this.message = this.i18n.translate('bannedReserveMessage');
-          void this.router.navigateByUrl('/banned');
-          return;
-        }
-
-        this.api.register(event.id).subscribe({
-          next: () => {
-            this.message = this.i18n.translate('eventRegistered');
-            this.loadEvents();
-          },
-          error: (error) => {
-            this.message = error.error?.message ?? this.i18n.translate('operationFailed');
-          }
-        });
-      },
-      error: (error) => {
-        if (error.status === 403) {
-          this.message = this.i18n.translate('bannedReserveMessage');
-          void this.router.navigateByUrl('/banned');
-          return;
-        }
-        this.message = this.i18n.translate('operationFailed');
-      }
-    });
-  }
-
-  submitReview(event: EventHubEvent): void {
-    const value = this.reviewForm.getRawValue();
-    this.api.createReview(event.id, value.rating, value.comment).subscribe({
-      next: () => {
-        this.message = this.i18n.translate('reviewSaved');
-        this.loadReviews(event.id);
-      },
-      error: (error) => {
-        this.message = error.error?.message ?? this.i18n.translate('reviewFailed');
-      }
-    });
-  }
-
-  loadReviews(eventId: number): void {
-    this.api.reviews(eventId).subscribe((response) => {
-      this.reviews = response.items;
     });
   }
 

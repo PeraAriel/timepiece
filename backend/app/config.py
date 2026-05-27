@@ -25,6 +25,7 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(5 * 1024 * 1024)))
 
     KEYCLOAK_BASE_URL = os.getenv("KEYCLOAK_BASE_URL", "http://localhost:8080")
+    KEYCLOAK_ISSUER_URL = os.getenv("KEYCLOAK_ISSUER_URL", KEYCLOAK_BASE_URL)
     KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "eventhub")
     KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "eventhub-frontend")
     KEYCLOAK_VERIFY_AUDIENCE = os.getenv("KEYCLOAK_VERIFY_AUDIENCE", "false").lower() == "true"
@@ -34,7 +35,7 @@ class Config:
 
     @property
     def KEYCLOAK_ISSUER(self):
-        return f"{self.KEYCLOAK_BASE_URL}/realms/{self.KEYCLOAK_REALM}"
+        return f"{self.KEYCLOAK_ISSUER_URL}/realms/{self.KEYCLOAK_REALM}"
 
 
 class TestingConfig(Config):

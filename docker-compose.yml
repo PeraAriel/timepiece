@@ -6,8 +6,6 @@ services:
       MYSQL_USER: eventhub
       MYSQL_PASSWORD: eventhub
       MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -37,7 +35,9 @@ services:
       - .env.example
     environment:
       DATABASE_URL: mysql+pymysql://eventhub:eventhub@db:3306/eventhub
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
       KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}
       UPLOAD_FOLDER: /app/uploads
     ports:
       - "5000:5000"

@@ -15,6 +15,15 @@ def openapi_json():
             }
         },
         "paths": {
+            "/api/auth/login": {
+                "post": {"summary": "Login with email and password"},
+            },
+            "/api/auth/register": {
+                "post": {"summary": "Create a Keycloak user and local profile"},
+            },
+            "/api/auth/refresh": {
+                "post": {"summary": "Refresh an access token"},
+            },
             "/api/events": {
                 "get": {"summary": "List public events"},
             },

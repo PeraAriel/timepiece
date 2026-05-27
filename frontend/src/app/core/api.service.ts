@@ -56,6 +56,10 @@ export class ApiService {
     return this.http.get<ApiList<EventHubEvent>>(`${this.baseUrl}/organizer/events`);
   }
 
+  organizerEvent(id: number) {
+    return this.http.get<EventHubEvent>(`${this.baseUrl}/organizer/events/${id}`);
+  }
+
   createOrganizerEvent(payload: EventInput) {
     return this.http.post<EventHubEvent>(`${this.baseUrl}/organizer/events`, payload);
   }

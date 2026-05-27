@@ -5,13 +5,15 @@ import { catchError, map, of } from 'rxjs';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
+  const router = inject(Router);
   if (auth.authenticated) {
     return true;
   }
-  void auth.login();
-  return false;
+  return router.createUrlTree(['/auth'], {
+    queryParams: { mode: 'login', returnUrl: state.url }
+  });
 };
 
 export function roleGuard(role: string): CanActivateFn {
